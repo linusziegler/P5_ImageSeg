@@ -4,9 +4,9 @@ let font;
 
 const TIME_SECONDS = 30;
 const GAME_INSTANCES = [];
-const TOTAL_INSTANCES = 38;
+const TOTAL_INSTANCES = 50;
 const REWARD_PER_TASK = 0.016; // $0.016 = 1.6 cents
-const ACCURACY_THRESHOLD = 80; // need 80% to get paid
+const ACCURACY_THRESHOLD = 85; // need 85% to get paid
 const TIME_BONUS_REWARD = 0.005; // $0.005 = 0.5 cents
 const TIME_BONUS_THRESHOLD = 5000; // need 5 seconds left to get bonus (in ms)
 
@@ -50,8 +50,6 @@ function setup() {
     // load leaderboard from local storage
     loadLeaderboard();
 
-    // reset leaderboard
-    // localStorage.clear();
 }
 
 function draw() {
@@ -217,7 +215,7 @@ function drawInstanceResultScreen() {
 }
 
 function handleResultsScreenInput() {
-    if (key === 'c' || key === 'C') {
+    if (key === 'c' || key === 'C' || key === 'Space') {
         // continue to next instance
         isDisplayingResults = false;
         currentInstanceIndex++;
@@ -244,8 +242,7 @@ function drawFinalResultsScreen() {
     const startX = (windowWidth - boxWidth) / 2;
     const startY = (windowHeight - boxHeight) / 2;
 
-    fill(30, 200);
-    stroke(outlineColor);
+    fill(0);
     strokeWeight(3);
     rect(startX, startY, boxWidth, boxHeight);
 
@@ -465,22 +462,23 @@ class GameInstance {
 
     loadTaskDescription(imgPath) {
         // extract image index from path (e.g., 'imgs/5.png' -> '5')
-        const imgIndex = imgPath.match(/\d+/)[0];
-        const taskFilePath = `imgs/${imgIndex}.txt`;
+        // const imgIndex = imgPath.match(/\d+/)[0];
+        // const taskFilePath = `imgs/${imgIndex}.txt`;
         
-        fetch(taskFilePath)
-            .then(response => {
-                if (!response.ok) throw new Error('Task file not found');
-                return response.text();
-            })
-            .then(text => {
-                this.taskDescription = text.trim();
-                console.log(`Task loaded for instance ${imgIndex}:`, this.taskDescription);
-            })
-            .catch(error => {
-                console.log(`Could not load task file ${taskFilePath}:`, error);
-                this.taskDescription = 'Trace the outlined area';
-            });
+        // fetch(taskFilePath)
+        //     .then(response => {
+        //         if (!response.ok) throw new Error('Task file not found');
+        //         return response.text();
+        //     })
+        //     .then(text => {
+        //         this.taskDescription = text.trim();
+        //         console.log(`Task loaded for instance ${imgIndex}:`, this.taskDescription);
+        //     })
+        //     .catch(error => {
+        //         console.log(`Could not load task file ${taskFilePath}:`, error);
+        //         this.taskDescription = 'Trace the most prominent person / object in the image.';
+        //     });
+        this.taskDescription = 'Trace the most prominent person / object in the image.';
     }
 
     draw() {
@@ -709,7 +707,7 @@ class GameInstance {
 
     keyPressed() {
         // handle ENTER for early completion
-        if (key === 'Enter') {
+        if (key === 'Enter' || key === 'Space') {
             this.completeEarly();
         }
     }

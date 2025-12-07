@@ -1,1 +1,0 @@
-Mask out the most prominent person / object.
