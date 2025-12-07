@@ -2,11 +2,13 @@ let outlineColor = null;
 let fillColor = null;
 let font;
 
-const TIME_SECONDS = 10;
+const TIME_SECONDS = 30;
 const GAME_INSTANCES = [];
 const TOTAL_INSTANCES = 38;
 const REWARD_PER_TASK = 0.016; // $0.016 = 1.6 cents
 const ACCURACY_THRESHOLD = 80; // need 80% to get paid
+const TIME_BONUS_REWARD = 0.005; // $0.005 = 0.5 cents
+const TIME_BONUS_THRESHOLD = 5000; // need 5 seconds left to get bonus (in ms)
 
 // select random images for the instances
 const randomOrder = getRandomNumbersFromRange(TOTAL_INSTANCES, 38);
@@ -140,13 +142,13 @@ function handleNameInput() {
 // -------------------- instance result screen --------------------
 
 function drawInstanceResultScreen() {
-
-
     const accuracy = resultsLog[resultsLog.length - 1];
     const reward = accuracy >= ACCURACY_THRESHOLD ? REWARD_PER_TASK : 0;
+    const earlyBonus = (accuracy >= ACCURACY_THRESHOLD && currentGameState) ? currentGameState.earlyCompletionBonus : 0;
+    const totalReward = reward + earlyBonus;
     
     const boxWidth = 600;
-    const boxHeight = 500;
+    const boxHeight = 550;
     const startX = (windowWidth - boxWidth) / 2;
     const startY = (windowHeight - boxHeight) / 2;
 
@@ -168,18 +170,27 @@ function drawInstanceResultScreen() {
     drawText(accuracy.toFixed(2) + '%', startX + boxWidth - 50, startY + 120, 
         { size: 24, alignH: RIGHT, alignV: TOP, col: accuracyColor });
 
-    // reward
+    // base reward
     const rewardText = reward > 0 ? '$' + reward.toFixed(3) : 'No reward';
     const rewardColor = reward > 0 ? color(100, 255, 100) : color(255, 100, 100);
-    drawText('Reward', startX + 50, startY + 180, 
+    drawText('Base Reward', startX + 50, startY + 180, 
         { size: 24, alignH: LEFT, alignV: TOP, col: color(255) });
     drawText(rewardText, startX + boxWidth - 50, startY + 180, 
         { size: 24, alignH: RIGHT, alignV: TOP, col: rewardColor });
 
-    // total earned
-    drawText('Total Earned', startX + 50, startY + 240, 
+    // early completion bonus (only shown if accuracy meets threshold)
+    if (earlyBonus > 0) {
+        const bonusText = '$' + earlyBonus.toFixed(3);
+        drawText('Time Bonus', startX + 50, startY + 240, 
+            { size: 24, alignH: LEFT, alignV: TOP, col: color(255) });
+        drawText(bonusText, startX + boxWidth - 50, startY + 240, 
+            { size: 24, alignH: RIGHT, alignV: TOP, col: color(100, 255, 100) });
+    }
+
+    // total earned this round
+    drawText('Total', startX + 50, startY + 300, 
         { size: 24, alignH: LEFT, alignV: TOP, col: color(255) });
-    drawText('$' + totalMoneyEarned.toFixed(3), startX + boxWidth - 50, startY + 240, 
+    drawText('$' + totalMoneyEarned.toFixed(3), startX + boxWidth - 50, startY + 300, 
         { size: 24, alignH: RIGHT, alignV: TOP, col: color(100, 255, 100) });
 
     // buttons
@@ -219,8 +230,8 @@ function handleResultsScreenInput() {
         // exit and claim rewards
         if (currentGameState) {
             currentGameState = null;
-            onPlayerExit();
         }
+        onPlayerExit();
     }
 }
 
@@ -372,12 +383,15 @@ function initializeInstance(index) {
     isDisplayingResults = false;
 }
 
-function onInstanceComplete(accuracy) {
+function onInstanceComplete(accuracy, earlyBonus = 0) {
     console.log(`Instance ${currentInstanceIndex + 1} completed with accuracy: ${accuracy}%`);
     resultsLog.push(accuracy);
 
-    // calculate reward
-    const reward = accuracy >= ACCURACY_THRESHOLD ? REWARD_PER_TASK : 0;
+    // calculate reward - only apply early bonus if accuracy threshold is met
+    let reward = 0;
+    if (accuracy >= ACCURACY_THRESHOLD) {
+        reward = REWARD_PER_TASK + earlyBonus; // only add early bonus if accuracy is sufficient
+    }
     totalMoneyEarned += reward;
 
     isDisplayingResults = true;
@@ -417,6 +431,7 @@ class GameInstance {
         this.loadedImage = null;
         this.loadedMask = null;
         this.taskDescription = ''; // store task description
+        this.earlyCompletionBonus = 0; // early completion bonus
 
         this.timerStartMillis = 0;
         this.timerRunning = false;
@@ -579,6 +594,12 @@ class GameInstance {
         // task text
         drawText(this.taskDescription, taskX, taskY, 
             { size: 22, alignH: CENTER, alignV: CENTER, col: color(255) });
+        
+        // show "Press ENTER to submit" hint if timer is running
+        if (this.allowInteraction && this.timerRunning) {
+            drawText('Press ENTER to submit early', taskX, windowHeight - 50, 
+                { size: 16, alignH: CENTER, alignV: CENTER, col: color(255) });
+        }
 
         pop();
     }
@@ -587,8 +608,26 @@ class GameInstance {
         this.allowInteraction = false;
         this.accuracyPercent = this.computePolygonMaskAccuracy();
 
-        // exit instance
-        onInstanceComplete(this.accuracyPercent);
+        // exit instance with no early bonus
+        onInstanceComplete(this.accuracyPercent, 0);
+    }
+
+    completeEarly() {
+        // user hit ENTER to complete early
+        if (!this.allowInteraction || !this.timerRunning) return;
+        
+        this.timerRunning = false;
+        this.allowInteraction = false;
+        this.accuracyPercent = this.computePolygonMaskAccuracy();
+
+        // check if time bonus qualifies (more than 5 seconds left)
+        if (this.timeLeft > TIME_BONUS_THRESHOLD) {
+            this.earlyCompletionBonus = TIME_BONUS_REWARD;
+            console.log('Early completion bonus earned:', this.earlyCompletionBonus);
+        }
+
+        // exit instance with early bonus if applicable
+        onInstanceComplete(this.accuracyPercent, this.earlyCompletionBonus);
     }
 
     computePolygonMaskAccuracy() {
@@ -665,6 +704,13 @@ class GameInstance {
         this.addPoint(mouseX, mouseY);
         if (!this.timerRunning) {
             this.startTimer();
+        }
+    }
+
+    keyPressed() {
+        // handle ENTER for early completion
+        if (key === 'Enter') {
+            this.completeEarly();
         }
     }
 }
