@@ -7,7 +7,7 @@ const TIME_SECONDS = 30;
 const GAME_INSTANCES = [];
 const TOTAL_INSTANCES = 50;
 const REWARD_PER_TASK = 0.016; // $0.016 = 1.6 cents
-const ACCURACY_THRESHOLD = 80; // need 80% to get paid
+const ACCURACY_THRESHOLD = 5; // need 80% to get paid
 const TIME_BONUS_REWARD = 0.005; // $0.005 = 0.5 cents
 const TIME_BONUS_THRESHOLD = 5000; // need 5 seconds left to get bonus (in ms)
 
@@ -16,7 +16,7 @@ const WEIGHT_FALSE_NEGATIVES = 1.0; // penalty for missing pixels from mask
 const WEIGHT_FALSE_POSITIVES = .8; // penalty for extra pixels in polygon
 
 // Level system
-const IMAGES_PER_LEVEL = 5; // complete 5 images to advance one level
+const IMAGES_PER_LEVEL = 10; // complete 10 images to advance one level
 const MAX_LEVEL = 5;
 
 // select random images for the instances
@@ -48,6 +48,12 @@ let loadedCursorImage = null;
 let levelIconImage = null;
 let levelIconGreyedImage = null;
 
+// level unlock screen state
+let isDisplayingLevelUnlock = false;
+let levelUnlockStartTime = 0;
+let unlockedLevel = 0;
+let moneyStackImage = null;
+
 function setup() {
     // load font
     font = loadFont('fonts/DotGothic16-Regular.ttf');
@@ -75,6 +81,10 @@ function setup() {
         () => { console.log('Level icon greyed loaded'); },
         () => { console.log('Failed to load level icon greyed'); levelIconGreyedImage = null; }
     );
+    moneyStackImage = loadImage('moneystack.gif',
+        () => { console.log('Money stack image loaded'); },
+        () => { console.log('Failed to load money stack image'); moneyStackImage = null; }
+    );
 
     // clear leaderboard for testing
     // localStorage.removeItem('leaderboard');
@@ -84,7 +94,15 @@ function setup() {
 function draw() {
     background(0);
     
-    if (!isGameStarted) {
+    if (isDisplayingLevelUnlock) {
+        // show level unlock screen
+        drawLevelUnlockScreen();
+        const elapsedTime = millis() - levelUnlockStartTime;
+        if (elapsedTime > 5000) {
+            isDisplayingLevelUnlock = false;
+            isDisplayingResults = true;
+        }
+    } else if (!isGameStarted) {
         // show start screen with UID and leaderboard
         drawStartScreen();
     } else if (allInstancesComplete) {
@@ -123,6 +141,13 @@ function mouseClicked() {
 }
 
 function keyPressed() {
+    if (isDisplayingLevelUnlock) {
+        // skip level unlock screen with Enter
+        if (key === 'Enter' || key === ' ') {
+            isDisplayingLevelUnlock = false;
+        }
+        return;
+    }
     if (!isGameStarted) {
         // start the game
         if (key === 'Enter' || key === ' ') {
@@ -330,6 +355,34 @@ function drawFinalResultsScreen() {
     pop();
 }
 
+// -------------------- level unlock screen --------------------
+
+function drawLevelUnlockScreen() {
+    push();
+    background(0);
+    
+    // title text
+    drawText(`Level ${unlockedLevel} Unlocked!`, windowWidth / 2, 120, 
+        { size: 84, alignH: CENTER, alignV: CENTER, col: color(100, 255, 100) });
+    
+    // draw money stacks (1 to unlockedLevel)
+    if (moneyStackImage) {
+        const stackSize = 300;
+        const spacing = 0;
+        const totalWidth = unlockedLevel * (stackSize + spacing) - spacing;
+        const startX = (windowWidth - totalWidth) / 2;
+        
+        push();
+        imageMode(CENTER);
+        for (let i = 0; i < unlockedLevel; i++) {
+            image(moneyStackImage, startX + i * (stackSize + spacing) + stackSize / 2, windowHeight / 2 + 100, stackSize, stackSize);
+        }
+        pop();
+    }
+    
+    pop();
+}
+
 // -------------------- leaderboard management --------------------
 
 function loadLeaderboard() {
@@ -509,7 +562,16 @@ function onInstanceComplete(accuracy, earlyBonus = 0) {
     totalMoneyEarned += reward;
 
     // update level based on successful instances only
-    playerLevel = Math.min(Math.floor(successfulInstances / IMAGES_PER_LEVEL) + 1, MAX_LEVEL);
+    const newLevel = Math.min(Math.floor(successfulInstances / IMAGES_PER_LEVEL) + 1, MAX_LEVEL);
+    if (newLevel > playerLevel) {
+        // level up! show unlock screen
+        playerLevel = newLevel;
+        unlockedLevel = newLevel;
+        isDisplayingLevelUnlock = true;
+        levelUnlockStartTime = millis();
+    } else {
+        playerLevel = newLevel;
+    }
 
     isDisplayingResults = true;
     displayResultsTime = millis();
