@@ -14,6 +14,10 @@ const TIME_BONUS_THRESHOLD = 5000; // need 5 seconds left to get bonus (in ms)
 const WEIGHT_FALSE_NEGATIVES = 1.0; // penalty for missing pixels from mask
 const WEIGHT_FALSE_POSITIVES = .8; // penalty for extra pixels in polygon
 
+// Level system
+const IMAGES_PER_LEVEL = 5; // complete 5 images to advance one level
+const MAX_LEVEL = 5;
+
 // select random images for the instances
 const randomOrder = getRandomNumbersFromRange(TOTAL_INSTANCES, TOTAL_INSTANCES);
 for (let i = 0; i < TOTAL_INSTANCES; i++) {
@@ -31,12 +35,15 @@ let displayResultsTime = 0;
 let isDisplayingResults = false;
 let allInstancesComplete = false;
 let finalResultsStartTime = null;
+let successfulInstances = 0;
 
 // leaderboard state
 let playerId = '';
 let leaderboard = [];
 let totalMoneyEarned = 0;
 let isGameStarted = false;
+let playerLevel = 1;
+let loadedCursorImage = null;
 
 function setup() {
     // load font
@@ -56,6 +63,9 @@ function setup() {
     loadLeaderboard();
     // generate random UID
     playerId = generateRandomUID();
+
+    // clear leaderboard for testing
+    // localStorage.removeItem('leaderboard');
 
 }
 
@@ -158,8 +168,12 @@ function drawInstanceResultScreen() {
     const earlyBonus = (accuracy >= ACCURACY_THRESHOLD && currentGameState) ? currentGameState.earlyCompletionBonus : 0;
     const totalReward = reward + earlyBonus;
     
+    // calculate level progression based on successful instances
+    const nextLevelAt = Math.ceil(successfulInstances / IMAGES_PER_LEVEL) * IMAGES_PER_LEVEL;
+    const successesToNextLevel = nextLevelAt - successfulInstances;
+    
     const boxWidth = 600;
-    const boxHeight = 550;
+    const boxHeight = 680;
     const startX = (windowWidth - boxWidth) / 2;
     const startY = (windowHeight - boxHeight) / 2;
 
@@ -204,6 +218,28 @@ function drawInstanceResultScreen() {
     drawText('$' + totalMoneyEarned.toFixed(3), startX + boxWidth - 50, startY + 300, 
         { size: 24, alignH: RIGHT, alignV: TOP, col: color(100, 255, 100) });
 
+    // level info
+    drawText('Level', startX + 50, startY + 360, 
+        { size: 24, alignH: LEFT, alignV: TOP, col: color(255) });
+    drawText(playerLevel + ' / ' + MAX_LEVEL, startX + boxWidth - 50, startY + 360, 
+        { size: 24, alignH: RIGHT, alignV: TOP, col: color(255, 200, 100) });
+
+    // progress to next level
+    if (playerLevel < MAX_LEVEL) {
+        if (successesToNextLevel === 0) {
+            drawText('Level Up!', startX + boxWidth / 2, startY + 410, 
+                { size: 24, alignH: CENTER, alignV: TOP, col: color(100, 255, 100) });
+        } else {
+        drawText('To Next Level', startX + 50, startY + 410, 
+            { size: 20, alignH: LEFT, alignV: TOP, col: color(200) });
+        drawText(successesToNextLevel + ' images', startX + boxWidth - 50, startY + 410, 
+            { size: 20, alignH: RIGHT, alignV: TOP, col: color(200) });
+        }
+    } else {
+        drawText('Max Level Reached!', startX + 50, startY + 410, 
+            { size: 20, alignH: LEFT, alignV: TOP, col: color(100, 255, 100) });
+    }
+
     // buttons
     push();
     textAlign(CENTER, CENTER);
@@ -211,16 +247,16 @@ function drawInstanceResultScreen() {
     // continue button
     stroke(100, 255, 100);
     strokeWeight(2);
-    rect(startX + 50, startY + boxHeight - 100, 200, 60);
-    drawText('Continue (C)', startX + 150, startY + boxHeight - 70, 
+    rect(startX + 50, startY + boxHeight - 60, 200, 60);
+    drawText('Continue (C)', startX + 150, startY + boxHeight - 30, 
         { size: 20, alignH: CENTER, alignV: CENTER, col: color(100, 255, 100) });
     
     // exit button
     fill(0);
     stroke(255);
     strokeWeight(2);
-    rect(startX + boxWidth - 250, startY + boxHeight - 100, 200, 60);
-    drawText('Exit & Claim (E)', startX + boxWidth - 150, startY + boxHeight - 70, 
+    rect(startX + boxWidth - 250, startY + boxHeight - 60, 200, 60);
+    drawText('Exit & Claim (E)', startX + boxWidth - 150, startY + boxHeight - 30, 
         { size: 20, alignH: CENTER, alignV: CENTER, col: color(255) });
     
     pop();
@@ -306,6 +342,9 @@ function saveLeaderboard() {
 
 function addToLeaderboard(uid, accuracies, totalMoney) {
     const avgAccuracy = accuracies.reduce((a, b) => a + b, 0) / accuracies.length;
+    // calculate level based on total images completed
+    const level = Math.min(Math.floor(accuracies.length / IMAGES_PER_LEVEL) + 1, MAX_LEVEL);
+    
     // add new entry, or append to existing if uid exists
     const existingIndex = leaderboard.findIndex(entry => entry.uid === uid);
     if (existingIndex !== -1) {
@@ -313,6 +352,7 @@ function addToLeaderboard(uid, accuracies, totalMoney) {
         const existingEntry = leaderboard[existingIndex];
         existingEntry.totalMoney += totalMoney;
         existingEntry.accuracies = existingEntry.accuracies.concat(accuracies);
+        existingEntry.level = level;
         const newAvgAccuracy = existingEntry.accuracies.reduce((a, b) => a + b, 0) / existingEntry.accuracies.length;
         existingEntry.avgAccuracy = parseFloat(newAvgAccuracy.toFixed(2));
         existingEntry.timestamp = new Date().toLocaleString();
@@ -321,6 +361,7 @@ function addToLeaderboard(uid, accuracies, totalMoney) {
         // add new entry
         leaderboard.push({
             uid: uid,
+            level: level,
             totalMoney: parseFloat(totalMoney.toFixed(3)),
             avgAccuracy: parseFloat(avgAccuracy.toFixed(2)),
             accuracies: accuracies.map(a => parseFloat(a.toFixed(2))),
@@ -367,8 +408,9 @@ function drawLeaderboard(startX, startY, boxWidth, rowsToShow = 5) {
         const entry = leaderboard[i];
         const isCurrentPlayer = entry.uid === playerId;
         const col = isCurrentPlayer ? color(100, 255, 100) : color(200);
+        const levelStars = '$'.repeat(entry.level);
         
-        drawText(`${i + 1}. ${entry.uid}`, startX + 70, startY + 40 + i * rowHeight, 
+        drawText(`${i + 1}. ${entry.uid} ${levelStars}`, startX + 70, startY + 40 + i * rowHeight, 
             { size: 20, alignH: LEFT, alignV: TOP, col: col });
         drawText('$' + entry.totalMoney.toFixed(3), startX + boxWidth - 70, startY + 40 + i * rowHeight, 
             { size: 20, alignH: RIGHT, alignV: TOP, col: col });
@@ -380,9 +422,15 @@ function drawHitCounter() {
     const hitText = 'Task: ' + (currentInstanceIndex + 1);
     const earnings = '$' + totalMoneyEarned.toFixed(3);
     const uidText = 'ID: ' + playerId;
+    const levelText = 'Level: ' + playerLevel;
+    const nextLevelIn = (IMAGES_PER_LEVEL - (successfulInstances % IMAGES_PER_LEVEL)) % IMAGES_PER_LEVEL;
+    const progressText = nextLevelIn === 0 ? 'Level up!' : nextLevelIn + ' to level up';
+    
     drawText(hitText, windowWidth - 70, 40, { size: 48, alignH: RIGHT, alignV: TOP, col: color(255) });
     drawText(earnings, windowWidth - 70, 110, { size: 36, alignH: RIGHT, alignV: TOP, col: color(100, 255, 100) });
     drawText(uidText, windowWidth - 70, 170, { size: 20, alignH: RIGHT, alignV: TOP, col: color(150) });
+    drawText(levelText, windowWidth - 70, 210, { size: 24, alignH: RIGHT, alignV: TOP, col: color(255, 200, 100) });
+    drawText(progressText, windowWidth - 70, 250, { size: 16, alignH: RIGHT, alignV: TOP, col: color(200) });
 }
 
 function getRandomNumbersFromRange(quantity, max){
@@ -417,8 +465,13 @@ function onInstanceComplete(accuracy, earlyBonus = 0) {
     let reward = 0;
     if (accuracy >= ACCURACY_THRESHOLD) {
         reward = REWARD_PER_TASK + earlyBonus; // only add early bonus if accuracy is sufficient
+        // increment successful instances counter
+        successfulInstances++;
     }
     totalMoneyEarned += reward;
+
+    // update level based on successful instances only
+    playerLevel = Math.min(Math.floor(successfulInstances / IMAGES_PER_LEVEL) + 1, MAX_LEVEL);
 
     isDisplayingResults = true;
     displayResultsTime = millis();
@@ -472,6 +525,7 @@ class GameInstance {
         this.loadImageFile(imgPath);
         this.loadMaskFile(maskPath);
         this.loadTaskDescription(imgPath); // load task description
+        this.loadCursor(); // load cursor based on level
     }
 
     loadImageFile(filename) {
@@ -507,6 +561,15 @@ class GameInstance {
         //         this.taskDescription = 'Trace the most prominent person / object in the image.';
         //     });
         this.taskDescription = 'Trace the most prominent person / object in the image.';
+    }
+
+    loadCursor() {
+        // load cursor image based on current player level (1-5)
+        const cursorPath = `cursors/${playerLevel}.png`;
+        loadedCursorImage = loadImage(cursorPath,
+            () => { console.log('Cursor loaded for level:', playerLevel); },
+            () => { console.log('Failed to load cursor:', cursorPath); loadedCursorImage = null; }
+        );
     }
 
     draw() {
@@ -552,9 +615,16 @@ class GameInstance {
 
     drawCursor() {
         push();
-        stroke(outlineColor);
-        strokeWeight(2);
-        circle(mouseX, mouseY, 8);
+        if (loadedCursorImage) {
+            // draw cursor image centered on mouse
+            imageMode(CENTER);
+            image(loadedCursorImage, mouseX, mouseY, 30, 30);
+        } else {
+            // fallback to default cursor
+            stroke(outlineColor);
+            strokeWeight(2);
+            circle(mouseX, mouseY, 8);
+        }
         pop();
     }
 
