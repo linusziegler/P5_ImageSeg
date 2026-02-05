@@ -7,7 +7,7 @@ const TIME_SECONDS = 30;
 const GAME_INSTANCES = [];
 const TOTAL_INSTANCES = 50;
 const REWARD_PER_TASK = 0.016; // $0.016 = 1.6 cents
-const ACCURACY_THRESHOLD = 5; // need 80% to get paid
+const ACCURACY_THRESHOLD = 80; // need 80% to get paid
 const TIME_BONUS_REWARD = 0.005; // $0.005 = 0.5 cents
 const TIME_BONUS_THRESHOLD = 5000; // need 5 seconds left to get bonus (in ms)
 
@@ -85,9 +85,6 @@ function setup() {
         () => { console.log('Money stack image loaded'); },
         () => { console.log('Failed to load money stack image'); moneyStackImage = null; }
     );
-
-    // clear leaderboard for testing
-    // localStorage.removeItem('leaderboard');
 
 }
 
