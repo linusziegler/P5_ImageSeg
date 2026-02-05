@@ -166,11 +166,3 @@ form button {
 form button:hover {
     background-color: #e0e0e0;
 }
-
-.leaderboard-w {
-    width: 50%;
-    height: 100%;
-
-    padding: 2rem;
-
-}

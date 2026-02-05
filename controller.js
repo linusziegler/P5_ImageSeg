@@ -260,8 +260,8 @@ function drawFinalResultsScreen() {
     // rect(startX, startY, boxWidth, boxHeight);
 
     // title
-    drawText('Game Complete!', windowWidth / 2, startY + 30, 
-        { size: 40, alignH: CENTER, alignV: TOP, col: color(100, 255, 100) });
+    drawText('Game Complete!', windowWidth / 2, 120, 
+        { size: 48, alignH: CENTER, alignV: TOP, col: color(100, 255, 100) });
 
     // player UID
     drawText(`Worker ID: ${playerId}`, windowWidth / 2, startY + 90, 
