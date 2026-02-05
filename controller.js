@@ -45,6 +45,8 @@ let totalMoneyEarned = 0;
 let isGameStarted = false;
 let playerLevel = 1;
 let loadedCursorImage = null;
+let levelIconImage = null;
+let levelIconGreyedImage = null;
 
 function setup() {
     // load font
@@ -64,6 +66,15 @@ function setup() {
     loadLeaderboard();
     // generate random UID
     playerId = generateRandomUID();
+    // load level icon images
+    levelIconImage = loadImage('icon.png',
+        () => { console.log('Level icon loaded'); },
+        () => { console.log('Failed to load level icon'); levelIconImage = null; }
+    );
+    levelIconGreyedImage = loadImage('icon_greyed.png',
+        () => { console.log('Level icon greyed loaded'); },
+        () => { console.log('Failed to load level icon greyed'); levelIconGreyedImage = null; }
+    );
 
     // clear leaderboard for testing
     // localStorage.removeItem('leaderboard');
@@ -399,6 +410,25 @@ function generateRandomUID() {
     return uid;
 }
 
+function drawLevelIcons(x, y, level, iconSize, spacing) {
+    // Draw level icons (1-5) side by side like GTA wanted stars
+    // Shows filled icons for unlocked levels, greyed for locked levels
+    if (!levelIconImage) return;
+    
+    push();
+    imageMode(LEFT, TOP);
+    for (let i = 0; i < MAX_LEVEL; i++) {
+        if (i < level && levelIconImage) {
+            // Draw filled icon for unlocked level
+            image(levelIconImage, x + i * (iconSize + spacing), y, iconSize, iconSize);
+        } else if (i >= level && levelIconGreyedImage) {
+            // Draw greyed icon for locked level
+            image(levelIconGreyedImage, x + i * (iconSize + spacing), y, iconSize, iconSize);
+        }
+    }
+    pop();
+}
+
 function drawLeaderboard(startX, startY, boxWidth, rowsToShow = 5) {
     // draws the leaderboard with specified rows
     drawText('Top Earners', startX + 50, startY, 
@@ -409,10 +439,13 @@ function drawLeaderboard(startX, startY, boxWidth, rowsToShow = 5) {
         const entry = leaderboard[i];
         const isCurrentPlayer = entry.uid === playerId;
         const col = isCurrentPlayer ? color(100, 255, 100) : color(200);
-        const levelStars = '$'.repeat(entry.level);
         
-        drawText(`${i + 1}. ${entry.uid} ${levelStars}`, startX + 70, startY + 40 + i * rowHeight, 
+        drawText(`${i + 1}. ${entry.uid}`, startX + 70, startY + 40 + i * rowHeight, 
             { size: 20, alignH: LEFT, alignV: TOP, col: col });
+        
+        // Draw level icons
+        drawLevelIcons(startX + 260, startY + 40 + i * rowHeight + 5, entry.level, 24, 2);
+        
         drawText('$' + entry.totalMoney.toFixed(3), startX + boxWidth - 70, startY + 40 + i * rowHeight, 
             { size: 20, alignH: RIGHT, alignV: TOP, col: col });
     }
@@ -427,11 +460,15 @@ function drawHitCounter() {
     const nextLevelIn = (IMAGES_PER_LEVEL - (successfulInstances % IMAGES_PER_LEVEL)) % IMAGES_PER_LEVEL;
     const progressText = nextLevelIn === 0 ? 'Level up!' : nextLevelIn + ' to level up';
     
-    drawText(hitText, windowWidth - 70, 40, { size: 48, alignH: RIGHT, alignV: TOP, col: color(255) });
-    drawText(earnings, windowWidth - 70, 110, { size: 36, alignH: RIGHT, alignV: TOP, col: color(100, 255, 100) });
-    drawText(uidText, windowWidth - 70, 170, { size: 20, alignH: RIGHT, alignV: TOP, col: color(150) });
-    drawText(levelText, windowWidth - 70, 210, { size: 24, alignH: RIGHT, alignV: TOP, col: color(255, 200, 100) });
-    drawText(progressText, windowWidth - 70, 250, { size: 16, alignH: RIGHT, alignV: TOP, col: color(200) });
+    drawText(hitText, 30, 40, { size: 48, alignH: LEFT, alignV: TOP, col: color(255) });
+    drawText(earnings, 30, 110, { size: 36, alignH: LEFT, alignV: TOP, col: color(100, 255, 100) });
+    drawText(uidText, 30, 170, { size: 20, alignH: LEFT, alignV: TOP, col: color(150) });
+    
+    // Draw level text and icons
+    drawText(levelText, 30, 210, { size: 24, alignH: LEFT, alignV: TOP, col: color(255, 200, 100) });    
+    drawLevelIcons(30, 255, playerLevel, 32, 2);
+    
+    // Draw level icons at bottom center
 }
 
 function getRandomNumbersFromRange(quantity, max){
@@ -677,7 +714,7 @@ class GameInstance {
 
     drawTimer() {
         const display = (this.timeLeft / 1000).toFixed(2) + 's';
-        drawText(display, 70, 40, { size: GLOBAL_TEXT_SIZE, alignH: LEFT, alignV: TOP, col: color(255) });
+        drawText(display, windowWidth - 30, 40, { size: GLOBAL_TEXT_SIZE, alignH: RIGHT, alignV: TOP, col: color(255) });
     }
 
     drawTaskDescription() {
