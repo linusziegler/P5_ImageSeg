@@ -24,11 +24,11 @@
             </div>
             <div class="icon-label">Reading List</div>
         </div>
-        <div class="desktop-icon" id="help-icon">
+        <div class="desktop-icon" id="info-icon">
             <div class="icon-rect">
                 <!-- Folder icon to be added -->
             </div>
-            <div class="icon-label">Help</div>
+            <div class="icon-label">Info</div>
         </div>
         <div class="desktop-icon" id="trash-icon">
             <div class="icon-rect">
@@ -46,35 +46,55 @@
         </div>
         <div class="window-content">
             <div class="folder-item">
-                <a href="#">📄 Hito Steyerl - Mean Images</a>
+                <a href="">📄 Hito Steyerl - Mean Images</a>
             </div>
             <div class="folder-item">
-                <a href="#">📄 Milagros Miceli - Why talk about Bias when we mean Power?</a>
+                <a href="">📄 Milagros Miceli - Why talk about Bias when we mean Power?</a>
             </div>
             <div class="folder-item">
-                <a href="#">📄 Data Workers Inquiry</a>
+                <a href="">📄 Data Workers Inquiry</a>
             </div>
             <div class="folder-item">
-                <a href="#">📄 David Nemer1 & André Sobral - Artificial intelligence as heteromation</a>
+                <a href="">📄 David Nemer1 & André Sobral - Artificial intelligence as heteromation</a>
             </div>
             <div class="folder-item">
-                <a href="#">📄 Iván López & Victoria Sánchez - AI, Microwork, and the Racial Politics of Care</a>
+                <a href="">📄 Iván López & Victoria Sánchez - AI, Microwork, and the Racial Politics of Care</a>
             </div>
         </div>
     </div>
-    <div class="folder-window" id="help-window" style="display: none;">
+    <div class="folder-window" id="info-window" style="display: none;">
         <div class="window-titlebar">
-            <span class="window-title">📄 Help</span>
+            <span class="window-title">📄 info</span>
             <button class="window-close">✕</button>
         </div>
         <div class="window-content">
+            <p>Data work (also Click Work, Crowd Work, paid crowdsourcing (PCS)) can be characterized as the work that
+                goes into producing data for so-called “intelligent” systems. 
+                <br><br>
+                This usually involves splitting
+                complex cognitive tasks into small repetitive microtasks, essentially mechanizing machine learning
+                through human cognition. These tasks are then outsourced through companies (BPOs) or crowdsourcing
+                platforms, often relying on workers in the global south with little-to-no labor protection, low wages
+                and heavily controlled working environments. In that way, **the development of Artificial Intelligence
+                is driven by the exploitation of remote, dispersed and poorly-paid data workers.**
+                <br><br>
+                Within scientific research, Data Work is often approached from a very technical point of view,
+                addressing general questions of efficiency, bias and accuracy. In contrast, researchers from
+                socio-political backgrounds propose that we should “study-up” data work by investigating labor
+                conditions, institutional practices and epistemological stances encoded into datasets.
+                <br><br>
+                In an attempt to shed light on Data Work as a foundational yet obscured component of Artificial
+                Intelligence, *click click click work work work* explores how this already exploitative practice is
+                further intensified through the use of gamification tactics. Using the example of image segmentation and
+                based on real training data, a player can get a glimpse of the human participation in artificial
+                intelligence and the labor-intensive “game” that drives it.</p>
         </div>
     </div>
 
     <!-- Bottom Menu Bar -->
     <div class="desktop-menubar">
         <div class="menubar-left">
-            <span class="menubar-text">click click click work work work</span>
+            <a href="/" class="menubar-text">click click click work work work</a href="/">
         </div>
         <div class="menubar-right">
             <div class="menubar-clock">
@@ -109,12 +129,12 @@
         // reading-list icon click
         document.getElementById('reading-list-icon').addEventListener('click', function () {
             const folderWindow = document.getElementById('reading-list-window');
-            folderWindow.style.display = folderWindow.style.display === 'none' ? 'block' : 'none';
+            folderWindow.style.display = folderWindow.style.display === 'none' ? 'flex' : 'none';
         });
-        // Help icon click
-        document.getElementById('help-icon').addEventListener('click', function () {
-            const folderWindow = document.getElementById('help-window');
-            folderWindow.style.display = folderWindow.style.display === 'none' ? 'block' : 'none';
+        // info icon click
+        document.getElementById('info-icon').addEventListener('click', function () {
+            const folderWindow = document.getElementById('info-window');
+            folderWindow.style.display = folderWindow.style.display === 'none' ? 'flex' : 'none';
         });
 
         // Trash icon click
@@ -128,8 +148,8 @@
         });
 
         // Folder window close button
-        document.querySelector('#help-window .window-close').addEventListener('click', function () {
-            document.getElementById('help-window').style.display = 'none';
+        document.querySelector('#info-window .window-close').addEventListener('click', function () {
+            document.getElementById('info-window').style.display = 'none';
         });
     </script>
 </body>
