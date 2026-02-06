@@ -1,4 +1,4 @@
-// activate live server and start kiosk mode using frefox --kiosk http://127.0.0.1:5500/
+// activate live server and start kiosk mode using firefox --kiosk http://127.0.0.1:5500/
 let outlineColor = null;
 let fillColor = null;
 let font;
@@ -271,7 +271,7 @@ function drawInstanceResultScreen() {
             drawText('Level Up!', startX + boxWidth / 2, startY + 410, 
                 { size: 24, alignH: CENTER, alignV: TOP, col: color(100, 255, 100) });
         } else {
-        drawText('To Next Level', startX + 50, startY + 410, 
+        drawText('Next Level in', startX + 50, startY + 410, 
             { size: 20, alignH: LEFT, alignV: TOP, col: color(200) });
         drawText(successesToNextLevel + ' images', startX + boxWidth - 50, startY + 410, 
             { size: 20, alignH: RIGHT, alignV: TOP, col: color(200) });
