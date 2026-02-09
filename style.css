@@ -312,17 +312,17 @@ body.desktop {
 }
 
 #game-icon {
-    top: 2rem;
+    bottom: 6rem;
     left: 2rem;
 }
 
 #reading-list-icon {
-    bottom: 6rem;
+    top: 2rem;
     left: 2rem;
 }
 
 #info-icon {
-    bottom: 6rem;
+    top: 2rem;
     left: 16rem;
 }
 
@@ -346,7 +346,8 @@ body.desktop {
     width: 80%;
     height: 80%;
     object-fit: contain;
-    filter:grayscale(100%);
+    filter:
+        grayscale(100%);
 }
 
 .icon-rect:active {
